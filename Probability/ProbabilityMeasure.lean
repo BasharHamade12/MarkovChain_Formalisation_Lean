@@ -173,8 +173,11 @@ lemma measurable_set_preimage_pred (Ω : Type*) [MeasurableSpace Ω]
     
     trivial
   
-  
-  exact hX h_target_measurable
+  unfold Measurable at hX 
+
+  apply hX 
+
+  --exact hX h_target_measurable
 
 -- The final application lemma is now correct:
 lemma X_is_even_measurable_final (Ω : Type*) [MeasurableSpace Ω]
@@ -189,15 +192,28 @@ def IndepSet [MeasurableSpace Ω] (μ : Measure Ω)
   μ (s ∩ t) = μ s * μ t
 
 -- Independence is symmetric
-theorem indepSet_symm [MeasurableSpace Ω] (μ : Measure Ω) 
+theorem indepSet_symm (μ : Measure Ω) 
     {s t : Set Ω} (h : IndepSet μ s t) :
     IndepSet μ t s := by
-  rw [IndepSet, Set.inter_comm, mul_comm]
+  rw [IndepSet] 
+
+  rw [Set.inter_comm] 
+
+  rw [mul_comm] 
+
+  unfold IndepSet at h 
+  
   exact h
 
+
+
+
 -- Finite version
-theorem measure_eq_sum_of_partition [MeasurableSpace Ω] (μ : Measure Ω)
-    {s : Set Ω} {f : ℕ → Set Ω} (hf : ∀ i, MeasurableSet (f i))
+
+
+theorem measure_eq_sum_of_partition  (μ : Measure Ω) 
+    {s : Set Ω} {f : ℕ → Set Ω} (hf : ∀ i, MeasurableSet (f i)) 
+    (hs : MeasurableSet s) 
     (hdisj : Pairwise fun i j => Disjoint (f i) (f j))
     (hunion : s ⊆ ⋃ i, f i) :
     μ s = ∑' i, μ (s ∩ f i) := by 
@@ -207,13 +223,28 @@ theorem measure_eq_sum_of_partition [MeasurableSpace Ω] (μ : Measure Ω)
     trivial 
   
   rw [this]
+
   -- Now apply Set.inter_iUnion
   rw [Set.inter_iUnion]
   -- Apply measure_iUnion for disjoint sets
-  rw [measure_iUnion]
-  · intro i j hij
-    exact (hdisj hij).mono (Set.inter_subset_right _ _) 
-                            (Set.inter_subset_right _ _)
+  rw [measure_iUnion] 
+
+  ·
+
+    congr 1 
+    ext i  
+    
+    rw [Set.iUnion_inter] 
+    
+    congr 1
+    ext j
+    simp 
+    intro j_fi j_a 
+    exists i 
+
+  
+
+  
   · -- rw [Set.disjoint_iff] 
     unfold Pairwise  
     intro i j i_not_j 
@@ -225,6 +256,26 @@ theorem measure_eq_sum_of_partition [MeasurableSpace Ω] (μ : Measure Ω)
     rw [Set.disjoint_iff_inter_eq_empty] at hfifj 
     rw [hfifj] 
     simp
+    --rw [Set.inter_empty]   
+    
+    --simp  
+  .
+
+    intro i  
+    
+    apply MeasurableSet.inter 
+    . 
+      trivial 
+    .
+      apply hf
+      
+  
+      
+      
+      
+
+    
+
 
     
 
