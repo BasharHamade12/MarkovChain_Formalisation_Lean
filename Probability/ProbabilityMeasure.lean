@@ -297,3 +297,82 @@ theorem Measurable_comp {α β γ : Type*} [MeasurableSpace α]
     apply hg 
     exact measurable_t 
   
+
+
+open MeasureTheory ProbabilityTheory
+namespace WeatherMarkovChain
+
+/-- The state space of our Markov chain -/
+inductive State where
+  | Good
+  | Bad
+  deriving DecidableEq, Fintype, Repr
+
+/-- Discrete σ-algebra (power set) - every subset is measurable -/
+instance : MeasurableSpace State := ⊤
+
+instance : MeasurableSingletonClass State := ⟨fun _ => trivial⟩
+
+instance : DiscreteMeasurableSpace State := ⟨fun _ => trivial⟩
+
+/-- Transition probabilities P(next | current) as ENNReal -/
+noncomputable def transProb : State → State → ENNReal
+  | .Good, .Good => 3/5
+  | .Good, .Bad  => 2/5
+  | .Bad,  .Good => 7/10
+  | .Bad,  .Bad  => 3/10
+
+/-- Stochastic matrix property: each row sums to 1 -/
+
+theorem transProb_sum (s : State) : transProb s .Good + transProb s .Bad = 1 := by
+  cases s <;> simp only [transProb]
+  · -- Good case: 3/5 + 2/5 = 1
+    calc (3 : ENNReal) / 5 + 2 / 5 
+        = (3 + 2) / 5 := by rw [← ENNReal.add_div]
+      _ = 5 / 5 := by norm_num
+      _ = 1 := ENNReal.div_self (by norm_num) ENNReal.coe_ne_top
+  · -- Bad case: 7/10 + 3/10 = 1
+    calc (7 : ENNReal) / 10 + 3 / 10 
+        = (7 + 3) / 10 := by rw [← ENNReal.add_div]
+      _ = 10 / 10 := by norm_num
+      _ = 1 := ENNReal.div_self (by norm_num) ENNReal.coe_ne_top
+
+/-- Transition measure: weighted sum of Dirac measures -/
+noncomputable def transMeasure (s : State) : Measure State :=
+  transProb s .Good • Measure.dirac .Good + transProb s .Bad • Measure.dirac .Bad
+
+/-- The transition measure assigns probability 1 to the full space -/
+theorem transMeasure_univ (s : State) : transMeasure s Set.univ = 1 := by
+  unfold transMeasure 
+  
+  rw [Measure.add_apply, Measure.smul_apply, Measure.smul_apply] 
+  
+  simp only [Measure.dirac_apply' _ MeasurableSet.univ, Set.indicator_univ,
+    Pi.one_apply, smul_eq_mul, mul_one]
+  exact transProb_sum s
+
+/-- Each transition measure is a probability measure -/
+instance transMeasure_isProbabilityMeasure (s : State) :
+    IsProbabilityMeasure (transMeasure s) :=
+  ⟨transMeasure_univ s⟩
+
+/-- Measurability of the transition measure (trivial for discrete domain) -/
+theorem transMeasure_measurable : Measurable transMeasure := by
+  
+
+  intro s _
+  -- State has discrete σ-algebra (= ⊤), so every set is measurable
+  trivial
+
+/-- The Markov kernel for the weather chain -/
+noncomputable def weatherKernel : Kernel State State where
+  toFun := transMeasure
+  measurable' := transMeasure_measurable
+
+/-- Proof that it's a Markov kernel (each fiber is a probability measure) -/
+instance : IsMarkovKernel weatherKernel where
+  isProbabilityMeasure s := transMeasure_isProbabilityMeasure s
+
+
+
+end WeatherMarkovChain
